@@ -1,8 +1,136 @@
 import { ImageResponse } from '@vercel/og';
 import { NextRequest } from 'next/server';
-import { CSSProperties } from 'react';
 
 export const runtime = 'edge';
+
+// 定义支持的字体
+const fonts = {
+  sans: 'sans-serif',
+  serif: 'serif',
+  mono: 'monospace',
+  cursive: 'cursive',
+  fantasy: 'fantasy',
+};
+
+// 定义主题颜色，包括渐变主题
+const themes = {
+  light: {
+    background: 'white',
+    text: '#333333',
+    accent: '#0070f3',
+    isGradient: false,
+  },
+  dark: {
+    background: '#1a1a1a',
+    text: '#ffffff',
+    accent: '#3291ff',
+    isGradient: false,
+  },
+  blue: {
+    background: '#0070f3',
+    text: '#ffffff',
+    accent: '#ffffff',
+    isGradient: false,
+  },
+  green: {
+    background: '#0f9d58',
+    text: '#ffffff',
+    accent: '#ffffff',
+    isGradient: false,
+  },
+  red: {
+    background: '#e53935',
+    text: '#ffffff',
+    accent: '#ffcdd2',
+    isGradient: false,
+  },
+  purple: {
+    background: '#6a1b9a',
+    text: '#ffffff',
+    accent: '#e1bee7',
+    isGradient: false,
+  },
+  orange: {
+    background: '#f57c00',
+    text: '#ffffff',
+    accent: '#ffe0b2',
+    isGradient: false,
+  },
+  pink: {
+    background: '#d81b60',
+    text: '#ffffff',
+    accent: '#f8bbd0',
+    isGradient: false,
+  },
+  teal: {
+    background: '#00897b',
+    text: '#ffffff',
+    accent: '#b2dfdb',
+    isGradient: false,
+  },
+  brown: {
+    background: '#795548',
+    text: '#ffffff',
+    accent: '#d7ccc8',
+    isGradient: false,
+  },
+  cyan: {
+    background: '#0097a7',
+    text: '#ffffff',
+    accent: '#b2ebf2',
+    isGradient: false,
+  },
+  amber: {
+    background: '#ffb300',
+    text: '#333333',
+    accent: '#333333',
+    isGradient: false,
+  },
+  indigo: {
+    background: '#3f51b5',
+    text: '#ffffff',
+    accent: '#c5cae9',
+    isGradient: false,
+  },
+  lime: {
+    background: '#afb42b',
+    text: '#333333',
+    accent: '#333333',
+    isGradient: false,
+  },
+  // 添加渐变主题
+  sunset: {
+    background: 'linear-gradient(135deg, #f56565 0%, #ed64a6 100%)',
+    text: '#ffffff',
+    accent: '#ffffff',
+    isGradient: true,
+  },
+  ocean: {
+    background: 'linear-gradient(135deg, #4299e1 0%, #9f7aea 100%)',
+    text: '#ffffff',
+    accent: '#ffffff',
+    isGradient: true,
+  },
+  forest: {
+    background: 'linear-gradient(135deg, #48bb78 0%, #38b2ac 100%)',
+    text: '#ffffff',
+    accent: '#ffffff',
+    isGradient: true,
+  },
+  passion: {
+    background: 'linear-gradient(135deg, #f56565 0%, #d53f8c 100%)',
+    text: '#ffffff',
+    accent: '#ffffff',
+    isGradient: true,
+  },
+  // 添加自定义主题
+  custom: {
+    background: '#000000',
+    text: '#ffffff',
+    accent: '#cccccc',
+    isGradient: false,
+  },
+};
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,65 +141,43 @@ export async function GET(request: NextRequest) {
     const description = searchParams.get('description') || 'Default description for your content';
     const theme = searchParams.get('theme') || 'light';
     const backgroundImage = searchParams.get('backgroundImage') || '';
+    const fontFamily = searchParams.get('font') || 'sans';
+    const imageMode = searchParams.get('imageMode') || 'cover';
     
-    // 定义主题颜色
-    const themes = {
-      light: {
-        background: 'white',
-        text: '#333333',
-        accent: '#0070f3',
-      },
-      dark: {
-        background: '#1a1a1a',
-        text: '#ffffff',
-        accent: '#3291ff',
-      },
-      blue: {
-        background: '#0070f3',
-        text: '#ffffff',
-        accent: '#ffffff',
-      },
-      green: {
-        background: '#0f9d58',
-        text: '#ffffff',
-        accent: '#ffffff',
-      },
-    };
+    // 获取自定义颜色参数
+    const customBgColor = searchParams.get('bgColor') || '';
+    const customTextColor = searchParams.get('textColor') || '';
+    const customAccentColor = searchParams.get('accentColor') || '';
     
     // 使用所选主题或默认为light主题
     const selectedTheme = themes[theme as keyof typeof themes] || themes.light;
+    
+    // 如果提供了自定义颜色，覆盖主题颜色
+    if (theme === 'custom') {
+      if (customBgColor && /^#[0-9A-Fa-f]{6}$/.test(customBgColor)) {
+        selectedTheme.background = customBgColor;
+      }
+      
+      if (customTextColor && /^#[0-9A-Fa-f]{6}$/.test(customTextColor)) {
+        selectedTheme.text = customTextColor;
+      }
+      
+      if (customAccentColor && /^#[0-9A-Fa-f]{6}$/.test(customAccentColor)) {
+        selectedTheme.accent = customAccentColor;
+      }
+    }
 
-    // 根据是否有背景图片来构建不同的组件
-    let containerStyles: CSSProperties = {
-      height: '100%',
-      width: '100%',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: selectedTheme.background,
-      padding: '40px',
-      fontFamily: 'sans-serif',
-    };
+    // 获取字体
+    const selectedFont = fonts[fontFamily as keyof typeof fonts] || fonts.sans;
 
-    // 如果有背景图片，尝试加载图片
-    let bgImageData: string | undefined = undefined;
+    // 处理背景图片
+    let bgImageData = null;
     if (backgroundImage) {
       try {
-        // 尝试获取背景图片
         const imageResponse = await fetch(backgroundImage);
         if (imageResponse.ok) {
           const buffer = await imageResponse.arrayBuffer();
           bgImageData = `data:${imageResponse.headers.get('content-type') || 'image/png'};base64,${Buffer.from(buffer).toString('base64')}`;
-          
-          // 添加背景图片样式
-          containerStyles = {
-            ...containerStyles,
-            backgroundImage: `url(${bgImageData})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            position: 'relative',
-          };
         } else {
           console.error(`Failed to fetch background image: ${backgroundImage}`);
         }
@@ -80,62 +186,103 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // 创建基础样式
+    const containerStyle = {
+      height: '100%',
+      width: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '40px',
+      fontFamily: selectedFont,
+      position: 'relative',
+      ...(bgImageData ? {
+        ...(imageMode === 'cover' && {
+          backgroundImage: `url(${bgImageData})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }),
+        ...(imageMode === 'contain' && {
+          backgroundImage: `url(${bgImageData})`,
+          backgroundSize: 'contain',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+        }),
+        ...(imageMode === 'repeat' && {
+          backgroundImage: `url(${bgImageData})`,
+          backgroundSize: 'auto',
+          backgroundRepeat: 'repeat',
+        }),
+        ...(imageMode === 'center' && {
+          backgroundImage: `url(${bgImageData})`,
+          backgroundSize: 'auto',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+        }),
+      } : selectedTheme.isGradient ? {
+        backgroundImage: selectedTheme.background,
+      } : {
+        backgroundColor: selectedTheme.background,
+      }),
+    };
+
+    // 如果背景是图片，添加一个半透明覆盖层
+    const needsOverlay = bgImageData && (imageMode === 'cover' || imageMode === 'contain' || imageMode === 'repeat' || imageMode === 'center');
+
+    const overlayStyle = {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      zIndex: 1, // 数字
+    };
+
+    const contentStyle = {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      border: `2px solid ${selectedTheme.accent}`,
+      borderRadius: '12px',
+      padding: '20px 40px',
+      width: '90%',
+      height: '80%',
+      background: bgImageData ? 'rgba(0, 0, 0, 0.3)' : 'transparent',
+      position: 'relative',
+      zIndex: 2, // 数字
+      fontFamily: selectedFont,
+    };
+
+    const titleStyle = {
+      fontSize: '60px',
+      fontWeight: 'bold',
+      color: bgImageData ? '#ffffff' : selectedTheme.text,
+      textAlign: 'center',
+      marginBottom: '20px',
+      textShadow: bgImageData ? '0 2px 4px rgba(0,0,0,0.7)' : 'none',
+      fontFamily: selectedFont,
+    };
+
+    const descriptionStyle = {
+      fontSize: '30px',
+      color: bgImageData ? '#ffffff' : selectedTheme.text,
+      textAlign: 'center',
+      opacity: 0.8,
+      textShadow: bgImageData ? '0 2px 4px rgba(0,0,0,0.7)' : 'none',
+      fontFamily: selectedFont,
+    };
+
+    // 返回图像响应
     return new ImageResponse(
       (
-        <div style={containerStyles}>
-          {/* 如果有背景图片，添加半透明层 */}
-          {bgImageData && (
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                backgroundColor: 'rgba(0, 0, 0, 0.5)', // 半透明黑色覆盖层
-                zIndex: 1,
-              }}
-            />
-          )}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: `2px solid ${selectedTheme.accent}`,
-              borderRadius: '12px',
-              padding: '20px 40px',
-              width: '90%',
-              height: '80%',
-              background: bgImageData ? 'rgba(0, 0, 0, 0.3)' : 'transparent',
-              position: 'relative',
-              zIndex: 2,
-            }}
-          >
-            <h1
-              style={{
-                fontSize: '60px',
-                fontWeight: 'bold',
-                color: bgImageData ? '#ffffff' : selectedTheme.text,
-                textAlign: 'center',
-                marginBottom: '20px',
-                textShadow: bgImageData ? '0 2px 4px rgba(0,0,0,0.7)' : 'none',
-              }}
-            >
-              {title}
-            </h1>
-            <p
-              style={{
-                fontSize: '30px',
-                color: bgImageData ? '#ffffff' : selectedTheme.text,
-                textAlign: 'center',
-                opacity: 0.8,
-                textShadow: bgImageData ? '0 2px 4px rgba(0,0,0,0.7)' : 'none',
-              }}
-            >
-              {description}
-            </p>
+        <div style={containerStyle}>
+          {needsOverlay && <div style={overlayStyle} />}
+          <div style={contentStyle}>
+            <h1 style={titleStyle}>{title}</h1>
+            <p style={descriptionStyle}>{description}</p>
           </div>
         </div>
       ),
