@@ -1,101 +1,184 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  
+  const [title, setTitle] = useState(searchParams.get('title') || 'Your Amazing Title');
+  const [description, setDescription] = useState(searchParams.get('description') || 'This is a custom OG image generator for your content');
+  const [theme, setTheme] = useState(searchParams.get('theme') || 'light');
+  const [imageUrl, setImageUrl] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [origin, setOrigin] = useState('');
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // 支持的主题
+  const themes = [
+    { id: 'light', name: '浅色' },
+    { id: 'dark', name: '深色' },
+    { id: 'blue', name: '蓝色' },
+    { id: 'green', name: '绿色' },
+  ];
+
+  // 当组件挂载时获取origin
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
+
+  // 当参数变化时，更新URL和预览图片
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (title) params.set('title', title);
+    if (description) params.set('description', description);
+    if (theme) params.set('theme', theme);
+    
+    router.replace(`?${params.toString()}`);
+    
+    // 更新预览图片URL
+    setImageUrl(`/api/og?${params.toString()}`);
+  }, [title, description, theme, router]);
+
+  // 复制图片链接到剪贴板
+  const copyImageUrl = () => {
+    const fullUrl = `${origin}/api/og?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&theme=${theme}`;
+    
+    navigator.clipboard.writeText(fullUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  // 下载图片
+  const downloadImage = async () => {
+    try {
+      setLoading(true);
+      const imageUrl = `${origin}/api/og?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&theme=${theme}`;
+      
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'og-image.png';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('下载失败', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <main className="flex min-h-screen flex-col items-center p-4 md:p-24 bg-gray-50">
+      <h1 className="text-4xl font-bold mb-8 text-center">OG 图像生成器</h1>
+      <div className="w-full max-w-5xl flex flex-col md:flex-row gap-8">
+        {/* 左侧控制面板 */}
+        <div className="flex-1 bg-white p-6 rounded-xl shadow-md">
+          <div className="space-y-6">
+            <div>
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+                标题
+              </label>
+              <input
+                type="text"
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="输入标题"
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                描述
+              </label>
+              <textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows={3}
+                placeholder="输入描述"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                主题
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {themes.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setTheme(t.id)}
+                    className={`py-2 px-4 rounded-md ${
+                      theme === t.id
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-gray-100 hover:bg-gray-200'
+                    }`}
+                  >
+                    {t.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <div className="flex gap-4 mt-6">
+              <button
+                onClick={copyImageUrl}
+                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md transition"
+              >
+                {copied ? '已复制!' : '复制链接'}
+              </button>
+              <button
+                onClick={downloadImage}
+                disabled={loading}
+                className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-md transition"
+              >
+                {loading ? '下载中...' : '下载图片'}
+              </button>
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+        
+        {/* 右侧预览 */}
+        <div className="flex-1 bg-white p-6 rounded-xl shadow-md">
+          <h2 className="text-xl font-semibold mb-4">预览</h2>
+          <div className="relative aspect-[1200/630] w-full bg-gray-100 rounded-md overflow-hidden">
+            {imageUrl && (
+              <Image
+                src={imageUrl}
+                alt="OG预览"
+                fill
+                priority
+                className="object-cover"
+              />
+            )}
+          </div>
+          <p className="mt-4 text-sm text-gray-500">
+            预览图比例: 1200 x 630 (标准OG图像尺寸)
+          </p>
+        </div>
+      </div>
+      
+      <div className="mt-16 text-center max-w-2xl">
+        <h2 className="text-2xl font-semibold mb-4">如何使用</h2>
+        <p className="text-gray-600 mb-4">
+          生成的OG图片链接可以在任何支持Open Graph协议的平台上使用，例如社交媒体、博客等。只需将链接添加到您网站的头部meta标签中：
+        </p>
+        <div className="bg-gray-800 text-white p-4 rounded-md text-left overflow-x-auto">
+          {origin && (
+            <pre>{`<meta property="og:image" content="${origin}/api/og?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&theme=${theme}" />`}</pre>
+          )}
+        </div>
+      </div>
+    </main>
   );
 }
