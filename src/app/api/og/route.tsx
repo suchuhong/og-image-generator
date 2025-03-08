@@ -187,7 +187,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 创建基础样式
-    const containerStyle = {
+    const containerStyle: React.CSSProperties = {
       height: '100%',
       width: '100%',
       display: 'flex',
@@ -230,7 +230,7 @@ export async function GET(request: NextRequest) {
     // 如果背景是图片，添加一个半透明覆盖层
     const needsOverlay = bgImageData && (imageMode === 'cover' || imageMode === 'contain' || imageMode === 'repeat' || imageMode === 'center');
 
-    const overlayStyle = {
+    const overlayStyle: React.CSSProperties = {
       position: 'absolute',
       top: 0,
       left: 0,
@@ -240,7 +240,7 @@ export async function GET(request: NextRequest) {
       zIndex: 1, // 数字
     };
 
-    const contentStyle = {
+    const contentStyle: React.CSSProperties = {
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -256,7 +256,7 @@ export async function GET(request: NextRequest) {
       fontFamily: selectedFont,
     };
 
-    const titleStyle = {
+    const titleStyle: React.CSSProperties= {
       fontSize: '60px',
       fontWeight: 'bold',
       color: bgImageData ? '#ffffff' : selectedTheme.text,
@@ -266,7 +266,7 @@ export async function GET(request: NextRequest) {
       fontFamily: selectedFont,
     };
 
-    const descriptionStyle = {
+    const descriptionStyle: React.CSSProperties = {
       fontSize: '30px',
       color: bgImageData ? '#ffffff' : selectedTheme.text,
       textAlign: 'center',
