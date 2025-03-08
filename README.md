@@ -2,7 +2,7 @@
 
 这是一个基于 Next.js 构建的 Open Graph (OG) 图像生成器，可以帮助你为网站或应用创建自定义的社交媒体分享卡片。
 
-![OG 图像生成器预览](https://i.imgur.com/example.png)
+![OG 图像生成器预览](./images/image.png)
 
 ## 功能特点
 
