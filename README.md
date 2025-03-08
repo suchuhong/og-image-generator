@@ -7,6 +7,7 @@
 ## 功能特点
 
 - 🎨 自定义图像标题和描述
+- 🖼️ 支持上传自定义背景图片
 - 🌈 多种主题色彩选择
 - 📱 响应式设计，适配各种设备
 - 🔗 便捷的链接复制功能
@@ -48,13 +49,14 @@ pnpm dev
 ## 使用方法
 
 1. 在首页上自定义你的标题和描述
-2. 选择一个你喜欢的主题颜色
-3. 预览生成的OG图像
-4. 复制图像链接或下载图像
-5. 将链接添加到你的网站的`<head>`标签中：
+2. 上传自定义背景图片（可选）
+3. 选择一个你喜欢的主题颜色
+4. 预览生成的OG图像
+5. 复制图像链接或下载图像
+6. 将链接添加到你的网站的`<head>`标签中：
 
 ```html
-<meta property="og:image" content="https://your-domain.com/api/og?title=Your%20Title&description=Your%20Description&theme=light" />
+<meta property="og:image" content="https://your-domain.com/api/og?title=Your%20Title&description=Your%20Description&theme=light&backgroundImage=https://your-domain.com/uploads/your-image.jpg" />
 ```
 
 ## API 参考
@@ -64,11 +66,16 @@ OG图像生成API接受以下查询参数：
 - `title` - 图像标题文本
 - `description` - 图像描述文本
 - `theme` - 主题选择 (`light`, `dark`, `blue`, `green`)
+- `backgroundImage` - 背景图片URL（可选）
 
 示例:
 ```
-/api/og?title=Hello%20World&description=This%20is%20my%20awesome%20content&theme=dark
+/api/og?title=Hello%20World&description=This%20is%20my%20awesome%20content&theme=dark&backgroundImage=https://example.com/my-image.jpg
 ```
+
+## 自定义背景图片
+
+应用允许上传JPG、PNG、WebP或GIF格式的图片，大小限制为5MB。上传的图片将被用作OG图像的背景，文本将自动调整为白色并添加阴影以确保在图片上可读。
 
 ## 自定义
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 
@@ -11,10 +11,14 @@ export default function Home() {
   const [title, setTitle] = useState(searchParams.get('title') || 'Your Amazing Title');
   const [description, setDescription] = useState(searchParams.get('description') || 'This is a custom OG image generator for your content');
   const [theme, setTheme] = useState(searchParams.get('theme') || 'light');
+  const [backgroundImage, setBackgroundImage] = useState(searchParams.get('backgroundImage') || '');
   const [imageUrl, setImageUrl] = useState('');
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [uploadLoading, setUploadLoading] = useState(false);
   const [origin, setOrigin] = useState('');
+  const [uploadError, setUploadError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 支持的主题
   const themes = [
@@ -35,16 +39,23 @@ export default function Home() {
     if (title) params.set('title', title);
     if (description) params.set('description', description);
     if (theme) params.set('theme', theme);
+    if (backgroundImage) params.set('backgroundImage', backgroundImage);
     
     router.replace(`?${params.toString()}`);
     
     // 更新预览图片URL
     setImageUrl(`/api/og?${params.toString()}`);
-  }, [title, description, theme, router]);
+  }, [title, description, theme, backgroundImage, router]);
 
   // 复制图片链接到剪贴板
   const copyImageUrl = () => {
-    const fullUrl = `${origin}/api/og?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&theme=${theme}`;
+    // 确保外部URL使用完整的origin
+    let fullBackgroundUrl = backgroundImage;
+    if (backgroundImage && backgroundImage.startsWith('/')) {
+      fullBackgroundUrl = `${origin}${backgroundImage}`;
+    }
+
+    const fullUrl = `${origin}/api/og?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&theme=${theme}${fullBackgroundUrl ? `&backgroundImage=${encodeURIComponent(fullBackgroundUrl)}` : ''}`;
     
     navigator.clipboard.writeText(fullUrl).then(() => {
       setCopied(true);
@@ -56,7 +67,13 @@ export default function Home() {
   const downloadImage = async () => {
     try {
       setLoading(true);
-      const imageUrl = `${origin}/api/og?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&theme=${theme}`;
+      // 确保外部URL使用完整的origin
+      let fullBackgroundUrl = backgroundImage;
+      if (backgroundImage && backgroundImage.startsWith('/')) {
+        fullBackgroundUrl = `${origin}${backgroundImage}`;
+      }
+
+      const imageUrl = `${origin}/api/og?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&theme=${theme}${fullBackgroundUrl ? `&backgroundImage=${encodeURIComponent(fullBackgroundUrl)}` : ''}`;
       
       const response = await fetch(imageUrl);
       const blob = await response.blob();
@@ -72,6 +89,64 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // 处理图片上传
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    
+    // 验证文件类型
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      setUploadError('不支持的文件类型。请上传 JPG, PNG, WebP 或 GIF 格式的图片');
+      return;
+    }
+
+    // 限制文件大小 (5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setUploadError('图片大小不能超过 5MB');
+      return;
+    }
+
+    setUploadLoading(true);
+    setUploadError('');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '上传失败');
+      }
+
+      const data = await response.json();
+      // 只存储路径，不包括origin，因为在Image组件中会自动添加
+      setBackgroundImage(data.fileUrl);
+    } catch (error) {
+      console.error('上传出错:', error);
+      setUploadError(error instanceof Error ? error.message : '上传过程中发生错误');
+    } finally {
+      setUploadLoading(false);
+      // 清空文件输入，允许重新上传相同的文件
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  // 清除背景图片
+  const clearBackgroundImage = () => {
+    setBackgroundImage('');
   };
 
   return (
@@ -107,6 +182,52 @@ export default function Home() {
                 rows={3}
                 placeholder="输入描述"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                背景图片
+              </label>
+              <div className="mt-1 flex items-center gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  onChange={handleImageUpload}
+                  className="sr-only"
+                  id="image-upload"
+                />
+                <label
+                  htmlFor="image-upload"
+                  className={`flex-1 cursor-pointer py-2 px-4 border border-gray-300 rounded-md text-center ${
+                    uploadLoading ? 'opacity-50 pointer-events-none' : 'hover:bg-gray-50'
+                  }`}
+                >
+                  {uploadLoading ? '上传中...' : '选择图片'}
+                </label>
+                {backgroundImage && (
+                  <button
+                    onClick={clearBackgroundImage}
+                    className="py-2 px-4 bg-red-500 hover:bg-red-600 text-white rounded-md"
+                  >
+                    清除
+                  </button>
+                )}
+              </div>
+              {uploadError && (
+                <p className="text-red-500 text-sm mt-1">{uploadError}</p>
+              )}
+              {backgroundImage && (
+                <div className="mt-2 relative aspect-video w-full overflow-hidden rounded-md border border-gray-200">
+                  <Image
+                    src={backgroundImage}
+                    alt="背景图片预览"
+                    fill
+                    className="object-cover"
+                    unoptimized
+                  />
+                </div>
+              )}
             </div>
             
             <div>
@@ -159,6 +280,7 @@ export default function Home() {
                 fill
                 priority
                 className="object-cover"
+                unoptimized
               />
             )}
           </div>
@@ -175,7 +297,7 @@ export default function Home() {
         </p>
         <div className="bg-gray-800 text-white p-4 rounded-md text-left overflow-x-auto">
           {origin && (
-            <pre>{`<meta property="og:image" content="${origin}/api/og?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&theme=${theme}" />`}</pre>
+            <pre>{`<meta property="og:image" content="${origin}/api/og?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&theme=${theme}${backgroundImage ? `&backgroundImage=${encodeURIComponent(`${origin}${backgroundImage}`)}` : ''}" />`}</pre>
           )}
         </div>
       </div>
