@@ -1,7 +1,6 @@
 import { ImageResponse } from '@vercel/og';
 import { NextRequest } from 'next/server';
 import { CSSProperties } from 'react';
-import Image from 'next/image';
 import { fonts } from './constants';
 import { 
   getCustomizedTheme,
@@ -89,14 +88,12 @@ export async function GET(request: NextRequest) {
     return new ImageResponse(
       (
         <div style={finalContainerStyle}>
-          {/* 如果是center模式，且有背景图，使用Image组件 */}
+          {/* 如果是center模式，且有背景图，使用普通img标签 */}
           {isCenterMode && bgImageData ? (
-            <Image 
+            <img 
               src={bgImageData}
               alt=""
               style={centerImageStyle}
-              width={1200}
-              height={630}
             />
           ) : null}
           
