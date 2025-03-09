@@ -9,6 +9,7 @@ import { themes } from "./api/og/constants";
 import { fonts } from "./api/og/constants";
 import { ImageMode } from "./api/og/types";
 import Image from "next/image";
+import { FileUpload } from "@/components/ui/file-upload";
 
 export default function Home() {
   const [title, setTitle] = useState("Default Title");
@@ -32,6 +33,17 @@ export default function Home() {
   
   // Generate a URL for actual use
   const ogImageUrl = origin ? `${origin}${previewUrl}` : previewUrl;
+
+  // 处理图片上传完成
+  const handleUploadComplete = (url: string) => {
+    // 存储相对路径
+    setBackgroundImage(url);
+  };
+
+  // 清除背景图片
+  const handleClearImage = () => {
+    setBackgroundImage("");
+  };
   
   return (
     <div className="container mx-auto py-10">
@@ -180,12 +192,27 @@ export default function Home() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
+                    <label className="text-sm font-medium">Upload Background Image</label>
+                    <FileUpload 
+                      onUploadComplete={handleUploadComplete}
+                      currentImage={backgroundImage}
+                      onClear={handleClearImage}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      支持JPG、PNG、WebP或GIF格式，最大5MB
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
                     <label className="text-sm font-medium">Background Image URL</label>
                     <Input 
                       value={backgroundImage} 
                       onChange={(e) => setBackgroundImage(e.target.value)} 
                       placeholder="https://example.com/image.jpg" 
                     />
+                    <p className="text-xs text-muted-foreground">
+                      输入图片URL或使用上方上传功能。上传后的图片将显示在这里，无需修改。
+                    </p>
                   </div>
                   
                   <div className="space-y-2">

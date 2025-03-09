@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import crypto from 'crypto';
-import { existsSync } from 'fs';
+import { writeFile } from 'fs/promises';
+import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import { mkdir } from 'fs/promises';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
 
     if (!file) {
       return NextResponse.json(
-        { error: '没有上传图片' },
+        { error: '未找到文件' },
         { status: 400 }
       );
     }
@@ -26,48 +26,49 @@ export async function POST(request: NextRequest) {
     }
 
     // 限制文件大小 (5MB)
-    const maxSize = 5 * 1024 * 1024;
+    const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
       return NextResponse.json(
-        { error: '图片大小不能超过 5MB' },
+        { error: '文件大小不能超过 5MB' },
         { status: 400 }
       );
     }
 
+    // 获取文件扩展名
+    const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+    
     // 生成唯一文件名
-    const fileExtension = file.name.split('.').pop();
-    const uniqueId = crypto.randomBytes(16).toString('hex');
-    const fileName = `${uniqueId}.${fileExtension}`;
+    const fileName = `${uuidv4()}.${fileExtension}`;
     
-    // 创建uploads目录路径
-    const publicDir = join(process.cwd(), 'public');
-    const uploadsDir = join(publicDir, 'uploads');
-    
+    // 创建上传目录
+    const uploadDir = path.join(process.cwd(), 'public/uploads');
     try {
-      // 确保目录存在
-      if (!existsSync(uploadsDir)) {
-        await mkdir(uploadsDir, { recursive: true });
-        console.log('Created uploads directory');
-      }
-      
-      // 写入文件
-      await writeFile(join(uploadsDir, fileName), Buffer.from(await file.arrayBuffer()));
+      await mkdir(uploadDir, { recursive: true });
     } catch (error) {
-      console.error('文件保存失败:', error);
-      return NextResponse.json(
-        { error: '文件上传失败，无法保存文件' },
-        { status: 500 }
-      );
+      console.error('创建目录失败:', error);
     }
-
-    // 文件的网址路径
+    
+    // 文件保存路径
+    const filePath = path.join(uploadDir, fileName);
+    
+    // 转换文件为 Buffer
+    const buffer = Buffer.from(await file.arrayBuffer());
+    
+    // 写入文件
+    await writeFile(filePath, buffer);
+    
+    // 返回文件URL路径
     const fileUrl = `/uploads/${fileName}`;
-
-    return NextResponse.json({ fileUrl });
+    
+    return NextResponse.json({
+      success: true,
+      fileUrl
+    });
+    
   } catch (error) {
-    console.error('上传出错:', error);
+    console.error('上传处理错误:', error);
     return NextResponse.json(
-      { error: '上传过程中发生错误' },
+      { error: '文件上传失败' },
       { status: 500 }
     );
   }
